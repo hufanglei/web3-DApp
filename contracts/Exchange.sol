@@ -14,6 +14,24 @@ contract Exchange {
     // 存储用户地址和代币地址
     mapping(address => mapping(address => uint256)) public tokens;
 
+    // 订单结构体
+    struct _Order {
+        uint256 id;
+        address user;
+        address tokenGet;
+        uint256 amountGet;
+
+        address tokenGive;
+        uint256 amountGive;
+
+        uint256 timestamp;
+    }
+
+    // _Order[] public orderlist;
+
+    mapping(uint256 => _Order) public orders;
+    uint256 public orderCount;
+
     // 构造函数
     constructor(address _feeAccount, uint256 _feePercent) {
         feeAccount = _feeAccount;
@@ -30,13 +48,31 @@ contract Exchange {
 
     event Deposit(address token, address user, uint256 amount, uint256 balance);
 
-    event WithDraw(address token, address user, uint256 amount, uint256 balance);
+    event WithDraw(
+        address token,
+        address user,
+        uint256 amount,
+        uint256 balance
+    );
+
+    event Order(
+        uint256 id,
+        address user,
+        address tokenGet,
+        uint256 amountGet,
+        address tokenGive,
+        uint256 amountGive,
+        uint256 timestamp
+    );
+
 
     // 存其他货币
     function depositToken(address _token, uint256 _amount) public {
-        require(_token!=ETHER);
+        require(_token != ETHER);
         // 调用某个方法强行从你账户往当前交易所账户转钱
-        require(HflToken(_token).transferFrom(msg.sender, address(this), _amount));
+        require(
+            HflToken(_token).transferFrom(msg.sender, address(this), _amount)
+        );
         tokens[_token][msg.sender] = tokens[_token][msg.sender] + _amount;
         emit Deposit(_token, msg.sender, _amount, tokens[_token][msg.sender]);
     }
@@ -46,7 +82,7 @@ contract Exchange {
         require(tokens[ETHER][msg.sender] >= _amount);
         tokens[ETHER][msg.sender] = tokens[ETHER][msg.sender] - _amount;
         // 从当前合约地址往用户地址转账
-         payable(msg.sender).transfer(_amount);
+        payable(msg.sender).transfer(_amount);
 
         emit WithDraw(ETHER, msg.sender, _amount, tokens[ETHER][msg.sender]);
     }
@@ -62,10 +98,27 @@ contract Exchange {
         emit WithDraw(_token, msg.sender, _amount, tokens[_token][msg.sender]);
     }
 
+    // 查余额
     function balanceOf(
-        address tokenAddress,
-        address user
+        address _token,
+        address _user
     ) public view returns (uint256) {
-        // TODO
+        return tokens[_token][_user];
     }
+
+    // makeOrder
+    function makeOrder(address _tokenGet,
+        uint256 _amountGet,
+        address _tokenGive,
+        uint256 _amountGive) public {
+        orderCount = orderCount + 1;
+        orders[orderCount] = _Order(orderCount, msg.sender, _tokenGet, _amountGet, _tokenGive, _amountGive, block.timestamp);
+
+        // 发出订单
+        emit Order(orderCount, msg.sender, _tokenGet, _amountGet, _tokenGive, _amountGive, block.timestamp);
+    }
+
+    // cancelOrder
+
+    // fillOrder
 }
