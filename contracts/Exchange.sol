@@ -34,6 +34,8 @@ contract Exchange {
 
     mapping(uint256 => bool) public orderCancel;
 
+    mapping(uint256 => bool) public orderFill;
+
     uint256 public orderCount;
 
     // 构造函数
@@ -81,6 +83,16 @@ contract Exchange {
         uint256 timestamp
     );
 
+   // 填充订单事件
+    event Trade(
+        uint256 id,
+        address user,
+        address tokenGet,
+        uint256 amountGet,
+        address tokenGive,
+        uint256 amountGive,
+        uint256 timestamp
+    );
 
     // 存其他货币
     function depositToken(address _token, uint256 _amount) public {
@@ -144,6 +156,49 @@ contract Exchange {
     }
 
     // fillOrder
+    function fillOrder(uint256 _id) public {
+        _Order memory myorder = orders[_id];
+        require(myorder.id == _id);
+        orderFill[_id] = true;
+
+        // 账户余额 互换 && 小费收取
+        /**
+        xiaoming ,makeorder,
+        100 KWT ==> 1 ether
+        
+        xiaoming ，少了1 ether
+        xiaoming 多了100KWT
+
+        -------------------------------
+
+        msg.sender,  fillorder
+        msg.sender，多了1 ether
+        msg.sender 少了 100KWT
+        */
+   
+
+        // require(_id > 0 && _id <= orderCount);
+        // require(!orderCancel[_id]);
+
+        // _Order memory myorder = orders[_id];
+        // uint256 _feeAmount = ((myorder.amountGet * feePercent) / 100);
+
+        uint256 feeAmount = myorder.amountGet * feePercent / 100;
+
+        // tokens
+        tokens[myorder.tokenGet][msg.sender] = tokens[myorder.tokenGet][msg.sender] - myorder.amountGet + feeAmount;
+       
+        tokens[myorder.tokenGet][feeAccount] = tokens[myorder.tokenGet][feeAccount] + feeAmount;
+
+        tokens[myorder.tokenGet][myorder.user] = tokens[myorder.tokenGet][myorder.user] + myorder.amountGet;
+
+        // 以太币
+        tokens[myorder.tokenGive][msg.sender] = tokens[myorder.tokenGive][msg.sender] + myorder.amountGive;
+        tokens[myorder.tokenGive][myorder.user] = tokens[myorder.tokenGive][myorder.user] - myorder.amountGive;
+
+        emit Trade(myorder.id, myorder.user, myorder.tokenGet, myorder.amountGet, myorder.tokenGive, myorder.amountGive, block.timestamp);
+
+    }
 
 
 
