@@ -139,6 +139,9 @@ contract Exchange {
         uint256 _amountGet,
         address _tokenGive,
         uint256 _amountGive) public {
+
+        require(balanceOf(_tokenGive, msg.sender) >= _amountGive, unicode"创建订单时余额不足");    
+
         orderCount = orderCount + 1;
         orders[orderCount] = _Order(orderCount, msg.sender, _tokenGet, _amountGet, _tokenGive, _amountGive, block.timestamp);
 
@@ -159,7 +162,6 @@ contract Exchange {
     function fillOrder(uint256 _id) public {
         _Order memory myorder = orders[_id];
         require(myorder.id == _id);
-        orderFill[_id] = true;
 
         // 账户余额 互换 && 小费收取
         /**
@@ -185,8 +187,12 @@ contract Exchange {
 
         uint256 feeAmount = myorder.amountGet * feePercent / 100;
 
+        require(balanceOf(myorder.tokenGive, myorder.user) >= myorder.amountGive, unicode"创建订单的用户的余额不足");    
+        require(balanceOf(myorder.tokenGet, myorder.user) >= myorder.amountGive + feeAmount, unicode"填充订单的用户的余额不足");    
+
+
         // tokens
-        tokens[myorder.tokenGet][msg.sender] = tokens[myorder.tokenGet][msg.sender] - myorder.amountGet + feeAmount;
+        tokens[myorder.tokenGet][msg.sender] = tokens[myorder.tokenGet][msg.sender] - myorder.amountGet - feeAmount;
        
         tokens[myorder.tokenGet][feeAccount] = tokens[myorder.tokenGet][feeAccount] + feeAmount;
 
@@ -195,6 +201,8 @@ contract Exchange {
         // 以太币
         tokens[myorder.tokenGive][msg.sender] = tokens[myorder.tokenGive][msg.sender] + myorder.amountGive;
         tokens[myorder.tokenGive][myorder.user] = tokens[myorder.tokenGive][myorder.user] - myorder.amountGive;
+
+        orderFill[_id] = true;
 
         emit Trade(myorder.id, myorder.user, myorder.tokenGet, myorder.amountGet, myorder.tokenGive, myorder.amountGive, block.timestamp);
 
