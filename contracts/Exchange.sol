@@ -14,6 +14,7 @@ contract Exchange {
     // 存储用户地址和代币地址
     mapping(address => mapping(address => uint256)) public tokens;
 
+
     // 订单结构体
     struct _Order {
         uint256 id;
@@ -30,6 +31,9 @@ contract Exchange {
     // _Order[] public orderlist;
 
     mapping(uint256 => _Order) public orders;
+
+    mapping(uint256 => bool) public orderCancel;
+
     uint256 public orderCount;
 
     // 构造函数
@@ -55,7 +59,19 @@ contract Exchange {
         uint256 balance
     );
 
+    // 创建订单事件
     event Order(
+        uint256 id,
+        address user,
+        address tokenGet,
+        uint256 amountGet,
+        address tokenGive,
+        uint256 amountGive,
+        uint256 timestamp
+    );
+
+    // 取消订单事件
+    event Cancel(
         uint256 id,
         address user,
         address tokenGet,
@@ -119,6 +135,17 @@ contract Exchange {
     }
 
     // cancelOrder
+    function cancelOrder(uint256 _id) public {
+        _Order memory myorder = orders[_id];
+        require(myorder.id == _id);
+        orderCancel[_id] = true;
+
+        emit Cancel(myorder.id, msg.sender, myorder.tokenGet, myorder.amountGet, myorder.tokenGive, myorder.amountGive, block.timestamp);
+    }
 
     // fillOrder
+
+
+
+
 }
